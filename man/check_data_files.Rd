@@ -4,12 +4,12 @@
 \alias{check_data_files}
 \title{Check if all data files exist and have non-zero size}
 \usage{
-check_data_files(names, sub_query_start_time)
+check_data_files(names, time)
 }
 \arguments{
 \item{names}{a character vector of file names}
 
-\item{sub_query_start_time}{a character string representing the sub-query start time in the format "YYYY-MM-DD"}
+\item{time}{a character string representing the sub-query start time in the format "YYYY-MM-DD"}
 }
 \value{
 a list containing two elements: a logical vector indicating if all files exist, and a numeric vector with the size of each file
