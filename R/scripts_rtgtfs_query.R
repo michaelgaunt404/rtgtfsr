@@ -64,15 +64,15 @@ query_rtgtfs_json = function(rtgtfs_feeds, ttl_query_duration, cache_interval, q
   info(logger, stringr::str_glue("Query start time: {start_time}"))
   message(stringr::str_glue("Starting query as {start_time}\nThis will run for approximately {ttl_query_duration} hours ({ttl_query_duration*60} min)\nThe query process will be ran a total of {ttl_query_duration*60/cache_interval} times\n{num_queries} queries will be made in total"))
 
-  number_of_query_pro = ttl_query_duration*60/cache_interval
-  query_amount = cache_interval*60/query_interval
+  number_of_query_pro = round(ttl_query_duration*60/cache_interval, 0)
+  query_amount = round(cache_interval*60/query_interval, 0)
 
-  for (i in 1:number_of_query_pro){
+  for (j in 1:number_of_query_pro){
     tryCatch({
       sub_query_start_time = gauntlet::strg_clean_datetime()
 
       info(logger, "Subquery start")
-      message(stringr::str_glue("{gauntlet::strg_make_space_2()}{gauntlet::strg_make_space_2()}Sub query start time: {start_time}"))
+      message(stringr::str_glue("{gauntlet::strg_make_space_2()}{gauntlet::strg_make_space_2()}Sub query start time: {start_time}\nMaking {query_amount} for this batch"))
 
       temp_file_vp = tempfile(fileext = ".csv")
       json_list_object_updates = list()
@@ -80,8 +80,8 @@ query_rtgtfs_json = function(rtgtfs_feeds, ttl_query_duration, cache_interval, q
       num_errors = 0
 
       for (i in 1:query_amount) {
-
         tryCatch({
+          time = Sys.time()
           message(str_glue("% Complete: {100*round(i/query_amount, 2)}%"))
 
           {
@@ -89,7 +89,10 @@ query_rtgtfs_json = function(rtgtfs_feeds, ttl_query_duration, cache_interval, q
               .[['entity']] %>%
               jsonlite::flatten() %>%
               data.frame() %>%
-              filter(vehicle.trip.route_id %in% routes)
+              filter(vehicle.trip.route_id %in% routes) %>%
+              mutate(time_queired = time
+                     ,query_block = j
+                     ,query_num = i)
 
             json_data_names = names(json_data_vp)
 
@@ -120,8 +123,9 @@ query_rtgtfs_json = function(rtgtfs_feeds, ttl_query_duration, cache_interval, q
             json_list_object_alerts[[i]] = json_data_alerts[index_alerts]
           }
 
-          Sys.sleep(query_interval)
+          remaining_time = (query_interval - as.numeric(Sys.time() - time) %% query_interval)
 
+          Sys.sleep(remaining_time)
         }, error = function(e) {
           cat("Error:", conditionMessage(e), "\n")
           cat("Skipping iteration", i, "\n")
@@ -151,7 +155,7 @@ query_rtgtfs_json = function(rtgtfs_feeds, ttl_query_duration, cache_interval, q
 
     }, error = function(e) {
       cat("Error:", conditionMessage(e), "\n")
-      cat("Skipping iteration", i, "\n")
+      cat("Skipping iteration", j, "\n")
     })
 
   }
