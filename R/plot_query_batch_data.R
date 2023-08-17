@@ -33,7 +33,7 @@ plot_query_batch_data =  function(data, days = 7) {
 
   data %>%
     count(time = hms::as_hms(floor_date(date_time, "minute")),
-          date = date(date_time)) %>%
+          date = lubridate::as_date(date_time)) %>%
     {if (!is.na(days)) (.) %>%
         filter(date > max(date) - days) else .} %>%
     ggplot() +

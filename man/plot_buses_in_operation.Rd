@@ -4,7 +4,7 @@
 \alias{plot_buses_in_operation}
 \title{Plot Buses in Operation}
 \usage{
-plot_buses_in_operation(data, days = 7)
+plot_buses_in_operation(data, days = NA)
 }
 \arguments{
 \item{data}{A preprocessed data.frame containing vehicle position data.}

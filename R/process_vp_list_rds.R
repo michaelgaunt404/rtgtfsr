@@ -40,12 +40,22 @@ process_vp_list_rds = function(rds_list_objects, timezone = "US/Pacific",
                                am_peak = c(6, 9), pm_peak = c(16, 18), midday_peak = c(10, 14)) {
   message("Processing VP List RDS Files...")
 
-  processed_data <- list(rds_list_objects, names(rds_list_objects)) %>%
-    pmap(~ {
-      message("Processing ", .y, "...")
-      .x %>% mutate(query_batch = .y %>% str_remove_all("data_vp_|\\.rds") %>%
-                      as_datetime(tz = timezone))
-    }) %>%
+  processed_data <-
+
+    if (!("query_batch" %in% names(rds_list_objects))) {
+      rds_list_objects = list(rds_list_objects, names(rds_list_objects)) %>%
+        pmap(~ {
+          message("Processing ", .y, "...")
+          .x %>%
+            mutate(query_batch = .y %>%
+                     str_remove_all("\\.rds") %>%
+                     gsub(".*vp_", "\\1", .) %>%
+                     lubridate::as_datetime(tz = timezone))
+        })
+
+    }
+
+  processed_data = rds_list_objects %>%
     reduce(bind_rows) %>%
     rename_with(~ .x %>% str_replace(., "vehicle.id", "vehicle_id") %>% gsub(".*\\.", "\\1", .)) %>%
     arrange(route_id, vehicle_id, trip_id, query_batch) %>%

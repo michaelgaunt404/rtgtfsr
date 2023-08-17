@@ -30,7 +30,7 @@
 #' plot_buses_in_operation(vehicle_data)
 #'
 #' @export
-plot_buses_in_operation =  function(data, days = 7) {
+plot_buses_in_operation =  function(data, days = NA) {
   message("Creating plot of buses in operation...")
 
   data %>%
@@ -39,7 +39,7 @@ plot_buses_in_operation =  function(data, days = 7) {
     ggplot(aes(time, buses_in_service, group = date)) +
     geom_line(alpha = .5) +
     geom_point(alpha = .5) +
-    scale_x_time(breaks = scales::breaks_width("1 hour")) +
+    ggplot2::scale_x_time(breaks = scales::breaks_width("1 hour")) +
     facet_grid(cols = vars(route_id), switch = "y") +
     coord_cartesian(ylim = c(0, NA)) +
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +

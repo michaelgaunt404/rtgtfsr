@@ -34,5 +34,5 @@ make_vp_data_smmry_stats = function(data) {
               total_records = sum(n)) %>%
     ungroup() %>%
     mutate(time = hms::as_hms(floor_date(query_batch, "minute")),
-           date = date(query_batch))
+           date = lubridate::as_date(query_batch))
 }
