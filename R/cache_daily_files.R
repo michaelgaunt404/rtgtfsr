@@ -1,4 +1,4 @@
-' Cache Daily Files
+#' Cache Daily Vehicle Position Files
 #'
 #' Combines individual RDS files generated throughout a day into a consolidated file for efficient data storage and retrieval.
 #'
@@ -17,40 +17,45 @@
 #' @references The `gauntlet` and `dplyr` packages are utilized in this function for reading and manipulating data, respectively. Please refer to their documentation for further details.
 #'
 #' @examples
-#' # Cache daily files in the "data" folder and save the consolidated file in the same folder.
-#' cache_daily_files()
+#' cache_daily_vp_files(folder = "data", folder_save_to = "cache", timezone = "US/Pacific")
 #'
-#' # Cache daily files in a custom folder and save the consolidated file in a different folder.
-#' cache_daily_files(folder = "custom_data_folder", folder_save_to = "consolidated_data_folder")
-#'
-#' @import gauntlet
 #' @import dplyr
-#' @import readr
+#' @import lubridate
+#' @import purrr
+#' @import stringr
 #' @import here
-#' @importFrom glue str_glue
-#' @importFrom lubridate as_date
-#' @importFrom purrr map, reduce
-#' @importFrom stringr gsub
-#' @importFrom utils write.table
+#' @import gauntlet
+#' @import readr
 #'
 #' @export
-cache_daily_files = function(folder = "data", folder_save_to = "data"){
-  files = list.files(here::here(folder)) %>%
-    gsub(".*data_updates_|data_alerts_|data_vp_"
-         , "\\1", .) %>%
+cache_daily_vp_files = function(folder = "data"
+                                ,folder_save_to = "data"
+                                ,timezone = "US/Pacific"){
+
+  daily_vp_dates = list.files(here::here(folder)) %>%
+    .[str_detect(., "data_vp")] %>%
+    gsub(".*data_vp_", "\\1", .) %>%
     gsub("_.*", "\\1", .) %>%
     unique() %>%
-    .[!is.na(as.numeric(.))] %>%
     .[as_date(.)!=Sys.Date()]
 
-  files %>%
+  daily_vp_dates %>%
     map(~{
-      data_vp = gauntlet::read_rds_allFiles(specifically = str_glue("vp_{.x}"))
+      data_vp = gauntlet::read_rds_allFiles(
+        data_location = folder, specifically = str_glue("vp_{.x}"))
       rds_path = here::here(folder_save_to, str_glue("daily_cache_vp_{.x}.rds"))
 
-      data_vp_comb = data_vp %>% reduce(bind_rows)
-      readr::write_rds(data_vp_comb, rds_path)
+      data_vp_comb = list(data_vp, names(data_vp)) %>%
+        pmap(~{
+          .x %>%
+            mutate(query_batch = .y %>%
+                     str_remove_all("\\.rds") %>%
+                     gsub(".*vp_", "\\1", .) %>%
+                     lubridate::as_datetime(tz = timezone))
+        }) %>%
+        reduce(bind_rows)
 
+      readr::write_rds(data_vp_comb, rds_path)
       rds_save_ob = readr::read_rds(rds_path)
       check_row = nrow(rds_save_ob) == nrow(data_vp_comb)
       check_identical = identical(rds_save_ob, data_vp_comb)
